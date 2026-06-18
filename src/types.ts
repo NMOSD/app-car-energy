@@ -7,6 +7,7 @@ export interface ChargingStation {
   monthlyTax: number
   pricingMethod: PricingMethod
   unitPricePerKWh: number
+  chargingSpeedKWh: number
 }
 
 export interface ChargeSession {
@@ -19,6 +20,10 @@ export interface ChargeSession {
   pricePerKWh: number
   energyKWh: number
   cost: number
+  mileageKm?: number
+  startTime: string
+  endTime: string
+  photoTimestamp?: string
   notes?: string
   editedAt?: string
 }
@@ -36,6 +41,9 @@ export interface InProgressSession {
   stationId: string
   startPercent: number
   date: string
+  mileageKm?: number
+  startTime: string
+  photoTimestamp?: string
 }
 
 export interface AppSettings {

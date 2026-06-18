@@ -1,5 +1,5 @@
 import { PersistedData } from './types'
-import { APP_VERSION, DEFAULT_BATTERY_CAPACITY_KWH } from './constants'
+import { APP_VERSION, DEFAULT_BATTERY_CAPACITY_KWH, DEFAULT_CHARGING_SPEED_KWH } from './constants'
 
 const STORAGE_KEY = 'app-car-energy-data'
 
@@ -24,6 +24,25 @@ function migrateData(raw: any): PersistedData {
       ...r,
       format: r.format || (r.filename?.endsWith('.json') ? 'json' : 'txt')
     }))
+  }
+
+  if (Array.isArray(data.stations)) {
+    data.stations = data.stations.map((s: any) => ({
+      ...s,
+      chargingSpeedKWh: s.chargingSpeedKWh ?? DEFAULT_CHARGING_SPEED_KWH
+    }))
+  }
+
+  if (Array.isArray(data.sessions)) {
+    data.sessions = data.sessions.map((s: any) => ({
+      ...s,
+      startTime: s.startTime || s.date + 'T00:00:00.000Z',
+      endTime: s.endTime || s.date + 'T01:00:00.000Z'
+    }))
+  }
+
+  if (data.inProgressSession && !data.inProgressSession.startTime) {
+    data.inProgressSession.startTime = new Date().toISOString()
   }
 
   return data

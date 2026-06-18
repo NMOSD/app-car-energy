@@ -55,6 +55,21 @@ export function ReportGenerator({ stations, sessions, onAddReport, onSuccess }: 
   const fixedCost = station && includeMonthlyTax ? station.monthlyTax * months : 0
   const totalCost = totalEnergyCost + fixedCost
 
+  let avgKwhPer100km: number | null = null
+  let avgEurPer100km: number | null = null
+  const sessionsWithKm = filtered.filter(s => s.mileageKm != null)
+  if (sessionsWithKm.length >= 2) {
+    const first = sessionsWithKm[0]
+    const last = sessionsWithKm[sessionsWithKm.length - 1]
+    const kmDelta = last.mileageKm! - first.mileageKm!
+    if (kmDelta > 0) {
+      const totalKWhInRange = sessionsWithKm.slice(1).reduce((sum, s) => sum + s.energyKWh, 0)
+      const totalCostInRange = sessionsWithKm.slice(1).reduce((sum, s) => sum + s.cost, 0)
+      avgKwhPer100km = (totalKWhInRange / kmDelta) * 100
+      avgEurPer100km = (totalCostInRange / kmDelta) * 100
+    }
+  }
+
   const reportText = station
     ? createTextReport(station, filtered, includeMonthlyTax, months)
     : 'Selecciona estacion y rango de fechas para ver el reporte.'
@@ -154,6 +169,12 @@ export function ReportGenerator({ stations, sessions, onAddReport, onSuccess }: 
         <p>Coste energia: <strong>{formatCurrency(totalEnergyCost)}</strong></p>
         <p>Coste mensual total: <strong>{formatCurrency(fixedCost)}</strong></p>
         <p>Coste final: <strong>{formatCurrency(totalCost)}</strong></p>
+        {avgKwhPer100km !== null && (
+          <>
+            <p>Consumo medio: <strong>{avgKwhPer100km.toFixed(1)} kWh/100km</strong></p>
+            <p>Coste medio: <strong>{formatCurrency(avgEurPer100km!)}/100km</strong></p>
+          </>
+        )}
       </div>
 
       <div className="export-actions">

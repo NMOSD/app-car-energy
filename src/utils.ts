@@ -38,3 +38,18 @@ export function todayDate(): string {
 export function todayDateTimeISO(): string {
   return new Date().toISOString()
 }
+
+export function estimateChargeMinutes(currentPercent: number, targetPercent: number, capacityKWh: number, speedKWh: number): number {
+  if (speedKWh <= 0 || targetPercent <= currentPercent) return 0
+  return ((targetPercent - currentPercent) / 100) * capacityKWh / speedKWh * 60
+}
+
+export function formatDuration(minutes: number): string {
+  if (minutes <= 0) return '0 min'
+  const totalMinutes = Math.round(minutes)
+  const h = Math.floor(totalMinutes / 60)
+  const m = totalMinutes % 60
+  if (h === 0) return `${m} min`
+  if (m === 0) return `${h} h`
+  return `${h} h ${m} min`
+}

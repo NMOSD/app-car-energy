@@ -44,7 +44,7 @@ export function StationManager({ stations, onAdd, onUpdate, onDelete }: Props) {
                 <div className="station-detail">
                   {station.pricingMethod === 'fixed' ? 'Fijo' : 'Variable (PVPC)'} &bull;{' '}
                   {station.pricingMethod === 'fixed' && <>{formatCurrency(station.unitPricePerKWh)} / kWh &bull; </>}
-                  {formatCurrency(station.monthlyTax)} / mes
+                  {formatCurrency(station.monthlyTax)} / mes &bull; {station.chargingSpeedKWh} kW
                 </div>
               </div>
               <div className="btn-group">
