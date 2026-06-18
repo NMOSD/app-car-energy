@@ -28,7 +28,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}']
       },
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon_ecar.png'],
       manifest: {
         name: 'App Car Energy',
         short_name: 'CarEnergy',
