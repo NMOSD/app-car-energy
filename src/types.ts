@@ -20,12 +20,14 @@ export interface ChargeSession {
   energyKWh: number
   cost: number
   notes?: string
+  editedAt?: string
 }
 
 export interface ReportFile {
   id: string
   filename: string
   content: string
+  format: 'txt' | 'json' | 'pdf' | 'docx'
   createdAt: string
 }
 
@@ -36,11 +38,13 @@ export interface InProgressSession {
   date: string
 }
 
+export interface AppSettings {
+  batteryCapacityKWh: number
+}
+
 export interface PersistedData {
   version: string
-  settings: {
-    batteryCapacityKWh: number
-  }
+  settings: AppSettings
   stations: ChargingStation[]
   sessions: ChargeSession[]
   inProgressSession: InProgressSession | null
