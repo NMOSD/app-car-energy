@@ -6,6 +6,10 @@ import { db } from '../firebase'
 import { ChargingStation, ChargeSession, InProgressSession, AppSettings, ReportFile } from '../types'
 import { DEFAULT_BATTERY_CAPACITY_KWH } from '../constants'
 
+function stripUndefined<T extends Record<string, unknown>>(obj: T): T {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T
+}
+
 function vehicleRef(code: string) {
   return doc(db, 'vehicles', code)
 }
@@ -91,7 +95,7 @@ export async function deleteStation(code: string, id: string): Promise<void> {
 }
 
 export async function startCharge(code: string, session: InProgressSession): Promise<void> {
-  await updateDoc(vehicleRef(code), { inProgressSession: session })
+  await updateDoc(vehicleRef(code), { inProgressSession: stripUndefined(session as unknown as Record<string, unknown>) })
 }
 
 export async function completeCharge(
@@ -101,7 +105,7 @@ export async function completeCharge(
 ): Promise<void> {
   const batch = writeBatch(db)
   const { id, ...sessionData } = session
-  batch.set(doc(sessionsCol(code), id), sessionData)
+  batch.set(doc(sessionsCol(code), id), stripUndefined(sessionData as unknown as Record<string, unknown>))
   batch.update(vehicleRef(code), { inProgressSession: null })
   if (stationSpeedUpdate) {
     batch.update(doc(stationsCol(code), stationSpeedUpdate.id), { chargingSpeedKWh: stationSpeedUpdate.speed })
@@ -114,7 +118,7 @@ export async function cancelCharge(code: string): Promise<void> {
 }
 
 export async function updateSession(code: string, id: string, updates: Partial<Omit<ChargeSession, 'id'>>): Promise<void> {
-  await updateDoc(doc(sessionsCol(code), id), updates as DocumentData)
+  await updateDoc(doc(sessionsCol(code), id), stripUndefined(updates as unknown as Record<string, unknown>) as DocumentData)
 }
 
 export async function deleteSession(code: string, id: string): Promise<void> {
@@ -153,7 +157,7 @@ export async function migrateLocalData(
   for (const session of sessions) {
     const { id, ...data } = session
     const mappedStationId = idMap.get(data.stationId) || data.stationId
-    batch.set(doc(sessionsCol(code), id), { ...data, stationId: mappedStationId })
+    batch.set(doc(sessionsCol(code), id), stripUndefined({ ...data, stationId: mappedStationId } as unknown as Record<string, unknown>))
   }
 
   for (const report of reports) {
