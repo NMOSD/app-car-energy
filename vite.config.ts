@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  base: '/app-car-energy/',
   cacheDir: process.env.LOCALAPPDATA + '/vite-cache/app-car-energy',
   build: {
     rollupOptions: {
