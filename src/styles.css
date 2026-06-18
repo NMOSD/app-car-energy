@@ -434,13 +434,27 @@ button:disabled {
   margin-bottom: 12px;
 }
 
+.photo-buttons {
+  display: flex;
+  gap: 8px;
+}
+
 .btn-camera {
   background: #7c3aed;
-  width: 100%;
+  flex: 1;
 }
 
 .btn-camera:hover {
   background: #6d28d9;
+}
+
+.btn-gallery {
+  background: #0891b2;
+  flex: 1;
+}
+
+.btn-gallery:hover {
+  background: #0e7490;
 }
 
 .ocr-result {

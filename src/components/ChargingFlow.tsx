@@ -4,12 +4,21 @@ import { formatDateEU, parseEUDate, todayDate, formatCurrency, calculateKWh, est
 import { fetchCurrentPrice } from '../services/electricityPrice'
 import { ChargingCounter } from './ChargingCounter'
 
+function currentTimeHHMM(): string {
+  const now = new Date()
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+}
+
+function combineDateTimeISO(isoDate: string, timeHHMM: string): string {
+  return new Date(`${isoDate}T${timeHHMM}:00`).toISOString()
+}
+
 interface Props {
   stations: ChargingStation[]
   inProgressSession: InProgressSession | null
   batteryCapacityKWh: number
-  onStartCharge: (stationId: string, startPercent: number, date: string, mileageKm?: number, photoTimestamp?: string) => void
-  onCompleteCharge: (endPercent: number, pricePerKWh: number) => void
+  onStartCharge: (stationId: string, startPercent: number, date: string, mileageKm?: number, photoTimestamp?: string, startTime?: string) => void
+  onCompleteCharge: (endPercent: number, pricePerKWh: number, endTime?: string) => void
   onCancelCharge: () => void
   onSuccess: (message: string) => void
 }
@@ -21,15 +30,18 @@ export function ChargingFlow({
   const [stationId, setStationId] = useState('')
   const [startPercent, setStartPercent] = useState(0)
   const [dateInput, setDateInput] = useState(formatDateEU(todayDate()))
+  const [startTimeInput, setStartTimeInput] = useState(currentTimeHHMM())
   const [mileageKm, setMileageKm] = useState<string>('')
   const [endPercent, setEndPercent] = useState(0)
+  const [endTimeInput, setEndTimeInput] = useState(currentTimeHHMM())
   const [pricePerKWh, setPricePerKWh] = useState(0)
   const [fetchingPrice, setFetchingPrice] = useState(false)
   const [priceError, setPriceError] = useState('')
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrResult, setOcrResult] = useState<string>('')
   const [photoTimestamp, setPhotoTimestamp] = useState<string | undefined>()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
 
   const selectedStation = stations.find(s => s.id === stationId)
   const ipStation = inProgressSession ? stations.find(s => s.id === inProgressSession.stationId) : null
@@ -43,6 +55,12 @@ export function ChargingFlow({
   useEffect(() => {
     if (inProgressSession && ipStation?.pricingMethod === 'variable') {
       handleFetchPrice()
+    }
+    if (inProgressSession) {
+      setEndTimeInput(currentTimeHHMM())
+      if (ipStation?.pricingMethod === 'fixed') {
+        setPricePerKWh(ipStation.unitPricePerKWh)
+      }
     }
   }, [inProgressSession, ipStation])
 
@@ -83,6 +101,7 @@ export function ChargingFlow({
       setOcrResult('Error al procesar la foto. Introduce los valores manualmente.')
     } finally {
       setOcrLoading(false)
+      e.target.value = ''
     }
   }
 
@@ -93,11 +112,13 @@ export function ChargingFlow({
     if (startPercent < 0 || startPercent > 100) return
     const station = stations.find(s => s.id === stationId)
     const km = mileageKm ? parseInt(mileageKm, 10) : undefined
-    onStartCharge(stationId, startPercent, isoDate, km, photoTimestamp)
+    const startTimeISO = combineDateTimeISO(isoDate, startTimeInput)
+    onStartCharge(stationId, startPercent, isoDate, km, photoTimestamp, startTimeISO)
     onSuccess(`Carga iniciada: ${station?.name} el ${dateInput}`)
     setStationId('')
     setStartPercent(0)
     setDateInput(formatDateEU(todayDate()))
+    setStartTimeInput(currentTimeHHMM())
     setMileageKm('')
     setPhotoTimestamp(undefined)
     setOcrResult('')
@@ -112,9 +133,12 @@ export function ChargingFlow({
     }
     const energyKWh = calculateKWh(inProgressSession.startPercent, endPercent, batteryCapacityKWh)
     const cost = energyKWh * pricePerKWh
-    onCompleteCharge(endPercent, pricePerKWh)
+    const isoDate = inProgressSession.date
+    const endTimeISO = combineDateTimeISO(isoDate, endTimeInput)
+    onCompleteCharge(endPercent, pricePerKWh, endTimeISO)
     onSuccess(`Carga registrada: ${energyKWh.toFixed(2)} kWh por ${formatCurrency(cost)}`)
     setEndPercent(0)
+    setEndTimeInput(currentTimeHHMM())
     setPricePerKWh(0)
     setPriceError('')
   }
@@ -122,12 +146,14 @@ export function ChargingFlow({
   const handleCancel = () => {
     onCancelCharge()
     setEndPercent(0)
+    setEndTimeInput(currentTimeHHMM())
     setPricePerKWh(0)
     setPriceError('')
   }
 
   if (inProgressSession) {
     const targets = [80, 90, 100].filter(t => t > inProgressSession.startPercent)
+    const startHHMM = new Date(inProgressSession.startTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
 
     return (
       <section className="panel">
@@ -150,6 +176,17 @@ export function ChargingFlow({
           <label>
             Fecha
             <input type="text" value={formatDateEU(inProgressSession.date)} disabled />
+          </label>
+        </div>
+
+        <div className="form-row">
+          <label>
+            Hora inicio
+            <input type="text" value={startHHMM} disabled />
+          </label>
+          <label>
+            Hora fin (HH:MM)
+            <input type="time" value={endTimeInput} onChange={e => setEndTimeInput(e.target.value)} />
           </label>
         </div>
 
@@ -220,20 +257,32 @@ export function ChargingFlow({
       </div>
       <div className="form-row">
         <label>
-          Nivel inicial (%)
-          <input type="number" value={startPercent} onChange={e => setStartPercent(Number(e.target.value))} min={0} max={100} />
+          Hora inicio (HH:MM)
+          <input type="time" value={startTimeInput} onChange={e => setStartTimeInput(e.target.value)} />
         </label>
         <label>
           Kilometraje (km)
           <input type="number" value={mileageKm} onChange={e => setMileageKm(e.target.value)} min={0} placeholder="Opcional" />
         </label>
       </div>
+      <div className="form-row">
+        <label>
+          Nivel inicial (%)
+          <input type="number" value={startPercent} onChange={e => setStartPercent(Number(e.target.value))} min={0} max={100} />
+        </label>
+      </div>
 
       <div className="ocr-section">
-        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoCapture} style={{ display: 'none' }} />
-        <button className="btn-camera" onClick={() => fileInputRef.current?.click()} disabled={ocrLoading}>
-          {ocrLoading ? 'Procesando foto...' : 'Capturar desde foto'}
-        </button>
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoCapture} style={{ display: 'none' }} />
+        <input ref={galleryInputRef} type="file" accept="image/*" onChange={handlePhotoCapture} style={{ display: 'none' }} />
+        <div className="photo-buttons">
+          <button className="btn-camera" onClick={() => cameraInputRef.current?.click()} disabled={ocrLoading}>
+            {ocrLoading ? 'Procesando...' : 'Hacer foto'}
+          </button>
+          <button className="btn-gallery" onClick={() => galleryInputRef.current?.click()} disabled={ocrLoading}>
+            Subir foto
+          </button>
+        </div>
         {ocrResult && <p className="ocr-result">{ocrResult}</p>}
       </div>
 

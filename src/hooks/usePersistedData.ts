@@ -84,22 +84,22 @@ export function usePersistedData(vehicleCode: string) {
     fsDeleteStation(codeRef.current, id)
   }, [])
 
-  const startCharge = useCallback((stationId: string, startPercent: number, date: string, mileageKm?: number, photoTimestamp?: string) => {
+  const startCharge = useCallback((stationId: string, startPercent: number, date: string, mileageKm?: number, photoTimestamp?: string, startTime?: string) => {
     const session: InProgressSession = {
       id: uuidv4(), stationId, startPercent, date,
-      mileageKm, startTime: new Date().toISOString(), photoTimestamp
+      mileageKm, startTime: startTime || new Date().toISOString(), photoTimestamp
     }
     fsStartCharge(codeRef.current, session)
     return session
   }, [])
 
-  const completeCharge = useCallback((endPercent: number, pricePerKWh: number) => {
+  const completeCharge = useCallback((endPercent: number, pricePerKWh: number, manualEndTime?: string) => {
     const ip = data.inProgressSession
     if (!ip) return null
     const capacity = data.settings.batteryCapacityKWh
     const energyKWh = calculateKWh(ip.startPercent, endPercent, capacity)
     const cost = energyKWh * pricePerKWh
-    const endTime = new Date().toISOString()
+    const endTime = manualEndTime || new Date().toISOString()
     const session: ChargeSession = {
       id: ip.id,
       stationId: ip.stationId,
