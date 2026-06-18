@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
-import { usePersistedData } from './hooks/usePersistedData'
+import { usePersistedData, getVehicleCode, setVehicleCode, clearVehicleCode } from './hooks/usePersistedData'
+import { ensureAuth } from './firebase'
 import { Header } from './components/Header'
 import { SuccessMessage } from './components/SuccessMessage'
 import { Settings } from './components/Settings'
@@ -8,22 +9,34 @@ import { ChargingFlow } from './components/ChargingFlow'
 import { SessionHistory } from './components/SessionHistory'
 import { ReportGenerator } from './components/ReportGenerator'
 import { SavedReports } from './components/SavedReports'
+import { VehicleSetup } from './components/VehicleSetup'
 
 type Tab = 'charge' | 'stations' | 'history' | 'report' | 'settings'
 
-function App() {
+function ConnectedApp({ vehicleCode, onDisconnect }: { vehicleCode: string; onDisconnect: () => void }) {
   const {
-    data, addStation, updateStation, deleteStation,
+    data, ready, addStation, updateStation, deleteStation,
     startCharge, completeCharge, cancelCharge,
     updateSession, deleteSession, updateSettings,
     addReport, deleteReport
-  } = usePersistedData()
+  } = usePersistedData(vehicleCode)
 
-  const [tab, setTab] = useState<Tab>(data.inProgressSession ? 'charge' : 'charge')
+  const [tab, setTab] = useState<Tab>('charge')
   const [successMessage, setSuccessMessage] = useState('')
 
   const showSuccess = useCallback((msg: string) => setSuccessMessage(msg), [])
   const clearSuccess = useCallback(() => setSuccessMessage(''), [])
+
+  if (!ready) {
+    return (
+      <div className="app-shell">
+        <Header />
+        <div className="panel" style={{ textAlign: 'center', padding: '40px 16px' }}>
+          <p>Conectando...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="app-shell">
@@ -84,6 +97,8 @@ function App() {
         <Settings
           batteryCapacityKWh={data.settings.batteryCapacityKWh}
           onUpdate={updateSettings}
+          vehicleCode={vehicleCode}
+          onDisconnect={onDisconnect}
         />
       )}
 
@@ -93,6 +108,28 @@ function App() {
       </footer>
     </div>
   )
+}
+
+function App() {
+  const [vehicleCode, setCode] = useState<string | null>(getVehicleCode)
+
+  const handleConnect = useCallback((code: string) => {
+    ensureAuth().then(() => {
+      setVehicleCode(code)
+      setCode(code)
+    })
+  }, [])
+
+  const handleDisconnect = useCallback(() => {
+    clearVehicleCode()
+    setCode(null)
+  }, [])
+
+  if (!vehicleCode) {
+    return <VehicleSetup onConnect={handleConnect} />
+  }
+
+  return <ConnectedApp vehicleCode={vehicleCode} onDisconnect={handleDisconnect} />
 }
 
 export default App

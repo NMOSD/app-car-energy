@@ -9,7 +9,9 @@ export default defineConfig({
       output: {
         manualChunks: {
           'pdf': ['jspdf'],
-          'docx': ['docx']
+          'docx': ['docx'],
+          'ocr': ['tesseract.js'],
+          'firebase': ['firebase/app', 'firebase/firestore', 'firebase/auth']
         }
       }
     }

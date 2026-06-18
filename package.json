@@ -1,7 +1,7 @@
 {
   "name": "app-car-energy",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,9 +12,11 @@
   "dependencies": {
     "docx": "^9.7.1",
     "file-saver": "^2.0.5",
+    "firebase": "^12.15.0",
     "jspdf": "^4.2.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "tesseract.js": "^7.0.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
