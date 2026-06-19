@@ -287,6 +287,10 @@ export function ChargingFlow({
       </div>
 
       <button onClick={handleStart}>Guardar e iniciar carga</button>
+
+      <div className="vehicle-photo">
+        <img src={import.meta.env.BASE_URL + 'DACIA SPRING.png'} alt="Dacia Spring" />
+      </div>
     </section>
   )
 }

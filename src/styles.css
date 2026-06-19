@@ -627,6 +627,18 @@ button:disabled {
   margin: 0 0 12px;
 }
 
+/* Vehicle photo */
+.vehicle-photo {
+  margin-top: 20px;
+  text-align: center;
+  opacity: 0.85;
+}
+
+.vehicle-photo img {
+  max-width: 75%;
+  height: auto;
+}
+
 /* Footer */
 footer {
   position: fixed;

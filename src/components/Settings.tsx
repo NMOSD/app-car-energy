@@ -27,6 +27,10 @@ export function Settings({ batteryCapacityKWh, onUpdate, vehicleCode, onDisconne
         <p className="vehicle-code-hint">Comparte este codigo con otros usuarios del vehiculo para sincronizar datos.</p>
         <button className="btn-danger btn-small" onClick={onDisconnect}>Desconectar vehiculo</button>
       </div>
+
+      <div className="vehicle-photo">
+        <img src={import.meta.env.BASE_URL + 'DACIA SPRING.png'} alt="Dacia Spring" />
+      </div>
     </section>
   )
 }
