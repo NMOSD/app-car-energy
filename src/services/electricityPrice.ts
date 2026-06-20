@@ -19,22 +19,33 @@ export interface HourlyCostResult {
   avgPricePerKWh: number
 }
 
-export async function fetchCurrentPrice(): Promise<number> {
-  const res = await fetch('https://api.preciodelaluz.org/v1/prices/now?zone=PCB')
-  if (!res.ok) throw new Error(`API error: ${res.status}`)
-  const data = await res.json()
-  return data.price / 1000
+function todayDateRange(): { start: string; end: string } {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return {
+    start: `${y}-${m}-${d}T00:00`,
+    end: `${y}-${m}-${d}T23:59`
+  }
 }
 
 export async function fetchTodayPrices(): Promise<HourlyPrice[]> {
-  const res = await fetch('https://api.preciodelaluz.org/v1/prices/all?zone=PCB')
+  const { start, end } = todayDateRange()
+  const url = `https://apidatos.ree.es/es/datos/mercados/precios-mercados-tiempo-real?start_date=${start}&end_date=${end}&time_trunc=hour`
+  const res = await fetch(url)
   if (!res.ok) throw new Error(`API error: ${res.status}`)
   const data = await res.json()
-  return Object.entries(data).map(([hour, info]: [string, any]) => ({
-    hour,
-    price: info.price / 1000,
-    units: '€/kWh'
-  }))
+  const pvpc = data.included?.find((i: any) => i.type === 'PVPC')
+  if (!pvpc) throw new Error('No PVPC data found')
+  return pvpc.attributes.values.map((v: any) => {
+    const hour = new Date(v.datetime).getHours()
+    return {
+      hour: `${String(hour).padStart(2, '0')}-${String(hour + 1).padStart(2, '0')}`,
+      price: v.value / 1000,
+      units: '€/kWh'
+    }
+  })
 }
 
 function parseHourKey(key: string): number {
