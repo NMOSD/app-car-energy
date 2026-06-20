@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { ChargingStation, InProgressSession } from '../types'
+import { ChargingStation, InProgressSession, PeajesConfig } from '../types'
 import { formatDateEU, parseEUDate, todayDate, formatCurrency, calculateKWh, estimateChargeMinutes, formatDuration } from '../utils'
-import { fetchTodayPrices, calculateHourlyCost, HourlyCostResult } from '../services/electricityPrice'
+import { fetchTodayPrices, calculateHourlyCost, applyPeajes, HourlyCostResult } from '../services/electricityPrice'
 import { ChargingCounter } from './ChargingCounter'
 
 function currentTimeHHMM(): string {
@@ -17,6 +17,7 @@ interface Props {
   stations: ChargingStation[]
   inProgressSession: InProgressSession | null
   batteryCapacityKWh: number
+  peajes: PeajesConfig
   onStartCharge: (stationId: string, startPercent: number, date: string, mileageKm?: number, photoTimestamp?: string, startTime?: string) => void
   onCompleteCharge: (endPercent: number, pricePerKWh: number, endTime?: string) => void
   onCancelCharge: () => void
@@ -24,7 +25,7 @@ interface Props {
 }
 
 export function ChargingFlow({
-  stations, inProgressSession, batteryCapacityKWh,
+  stations, inProgressSession, batteryCapacityKWh, peajes,
   onStartCharge, onCompleteCharge, onCancelCharge, onSuccess
 }: Props) {
   const [stationId, setStationId] = useState('')
@@ -71,7 +72,8 @@ export function ChargingFlow({
     setPriceError('')
     setHourlyCost(null)
     try {
-      const prices = await fetchTodayPrices()
+      const rawPrices = await fetchTodayPrices()
+      const prices = applyPeajes(rawPrices, peajes, new Date())
       const endTimeISO = combineDateTimeISO(inProgressSession.date, endTimeInput)
       const result = calculateHourlyCost(inProgressSession.startTime, endTimeISO, ipStation.chargingSpeedKWh, prices)
       setHourlyCost(result)

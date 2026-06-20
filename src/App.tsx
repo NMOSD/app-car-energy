@@ -56,6 +56,7 @@ function ConnectedApp({ vehicleCode, onDisconnect }: { vehicleCode: string; onDi
           stations={data.stations}
           inProgressSession={data.inProgressSession}
           batteryCapacityKWh={data.settings.batteryCapacityKWh}
+          peajes={data.settings.peajes}
           onStartCharge={startCharge}
           onCompleteCharge={completeCharge}
           onCancelCharge={cancelCharge}
@@ -95,8 +96,8 @@ function ConnectedApp({ vehicleCode, onDisconnect }: { vehicleCode: string; onDi
 
       {tab === 'settings' && (
         <Settings
-          batteryCapacityKWh={data.settings.batteryCapacityKWh}
-          onUpdate={updateSettings}
+          settings={data.settings}
+          onUpdateSettings={updateSettings}
           vehicleCode={vehicleCode}
           onDisconnect={onDisconnect}
         />

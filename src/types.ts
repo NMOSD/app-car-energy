@@ -46,8 +46,15 @@ export interface InProgressSession {
   photoTimestamp?: string
 }
 
+export interface PeajesConfig {
+  p1: number
+  p2: number
+  p3: number
+}
+
 export interface AppSettings {
   batteryCapacityKWh: number
+  peajes: PeajesConfig
 }
 
 export interface PersistedData {

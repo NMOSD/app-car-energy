@@ -9,7 +9,7 @@ import {
   updateSession as fsUpdateSession, deleteSession as fsDeleteSession,
   updateSettings as fsUpdateSettings, addReport as fsAddReport, deleteReport as fsDeleteReport
 } from '../services/firestore'
-import { DEFAULT_BATTERY_CAPACITY_KWH } from '../constants'
+import { DEFAULT_BATTERY_CAPACITY_KWH, DEFAULT_PEAJES } from '../constants'
 import { v4 as uuidv4 } from 'uuid'
 
 const VEHICLE_CODE_KEY = 'carEnergy_vehicleCode'
@@ -28,7 +28,7 @@ export function clearVehicleCode() {
 
 const emptyData: PersistedData = {
   version: '2.0.0',
-  settings: { batteryCapacityKWh: DEFAULT_BATTERY_CAPACITY_KWH },
+  settings: { batteryCapacityKWh: DEFAULT_BATTERY_CAPACITY_KWH, peajes: DEFAULT_PEAJES },
   stations: [],
   sessions: [],
   inProgressSession: null,
@@ -154,9 +154,14 @@ export function usePersistedData(vehicleCode: string) {
     fsDeleteSession(codeRef.current, id)
   }, [])
 
-  const updateSettings = useCallback((batteryCapacityKWh: number) => {
-    fsUpdateSettings(codeRef.current, { batteryCapacityKWh })
-  }, [])
+  const updateSettings = useCallback((updates: Partial<AppSettings>) => {
+    const merged: AppSettings = {
+      ...data.settings,
+      ...updates,
+      peajes: { ...data.settings.peajes, ...(updates.peajes || {}) }
+    }
+    fsUpdateSettings(codeRef.current, merged)
+  }, [data.settings])
 
   const addReport = useCallback((report: ReportFile) => {
     fsAddReport(codeRef.current, report)

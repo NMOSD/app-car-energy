@@ -1,12 +1,13 @@
 import { PersistedData } from './types'
-import { APP_VERSION, DEFAULT_BATTERY_CAPACITY_KWH, DEFAULT_CHARGING_SPEED_KWH } from './constants'
+import { APP_VERSION, DEFAULT_BATTERY_CAPACITY_KWH, DEFAULT_CHARGING_SPEED_KWH, DEFAULT_PEAJES } from './constants'
 
 const STORAGE_KEY = 'app-car-energy-data'
 
 const defaultData: PersistedData = {
   version: APP_VERSION,
   settings: {
-    batteryCapacityKWh: DEFAULT_BATTERY_CAPACITY_KWH
+    batteryCapacityKWh: DEFAULT_BATTERY_CAPACITY_KWH,
+    peajes: DEFAULT_PEAJES
   },
   stations: [],
   sessions: [],

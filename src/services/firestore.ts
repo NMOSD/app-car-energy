@@ -4,7 +4,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { ChargingStation, ChargeSession, InProgressSession, AppSettings, ReportFile } from '../types'
-import { DEFAULT_BATTERY_CAPACITY_KWH } from '../constants'
+import { DEFAULT_BATTERY_CAPACITY_KWH, DEFAULT_PEAJES } from '../constants'
 
 function stripUndefined<T extends Record<string, unknown>>(obj: T): T {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T
@@ -33,7 +33,7 @@ export async function vehicleExists(code: string): Promise<boolean> {
 
 export async function createVehicle(code: string): Promise<void> {
   await setDoc(vehicleRef(code), {
-    settings: { batteryCapacityKWh: DEFAULT_BATTERY_CAPACITY_KWH },
+    settings: { batteryCapacityKWh: DEFAULT_BATTERY_CAPACITY_KWH, peajes: DEFAULT_PEAJES },
     inProgressSession: null
   })
 }
@@ -44,7 +44,11 @@ export function subscribeToVehicle(
 ): Unsubscribe {
   return onSnapshot(vehicleRef(code), (snap) => {
     const data = snap.data() || {}
-    const settings: AppSettings = data.settings || { batteryCapacityKWh: DEFAULT_BATTERY_CAPACITY_KWH }
+    const raw = data.settings || {}
+    const settings: AppSettings = {
+      batteryCapacityKWh: raw.batteryCapacityKWh || DEFAULT_BATTERY_CAPACITY_KWH,
+      peajes: raw.peajes || DEFAULT_PEAJES
+    }
     const inProgress: InProgressSession | null = data.inProgressSession || null
     callback(settings, inProgress)
   })

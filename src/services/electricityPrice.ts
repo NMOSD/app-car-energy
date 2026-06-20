@@ -1,3 +1,7 @@
+import { PeajesConfig } from '../types'
+
+export type TariffPeriod = 'P1' | 'P2' | 'P3'
+
 export interface HourlyPrice {
   hour: string
   price: number
@@ -45,6 +49,31 @@ export async function fetchTodayPrices(): Promise<HourlyPrice[]> {
       price: v.value / 1000,
       units: '€/kWh'
     }
+  })
+}
+
+export function getTariffPeriod(hour: number, date: Date): TariffPeriod {
+  const day = date.getDay()
+  if (day === 0 || day === 6) return 'P3'
+  const month = date.getMonth() + 1
+  const isSummer = month >= 4 && month <= 9
+  if (isSummer) {
+    if (hour >= 10 && hour < 14) return 'P1'
+    if ((hour >= 8 && hour < 10) || (hour >= 14 && hour < 18)) return 'P2'
+    return 'P3'
+  } else {
+    if (hour >= 18 && hour < 22) return 'P1'
+    if ((hour >= 8 && hour < 18) || (hour >= 22 && hour < 24)) return 'P2'
+    return 'P3'
+  }
+}
+
+export function applyPeajes(prices: HourlyPrice[], peajes: PeajesConfig, date: Date): HourlyPrice[] {
+  return prices.map(p => {
+    const hour = parseHourKey(p.hour)
+    const period = getTariffPeriod(hour, date)
+    const peaje = peajes[period.toLowerCase() as keyof PeajesConfig]
+    return { ...p, price: p.price + peaje }
   })
 }
 
