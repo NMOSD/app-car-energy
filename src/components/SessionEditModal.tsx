@@ -9,19 +9,25 @@ interface Props {
   onClose: () => void
 }
 
-function formatDateTime(iso: string): string {
+function isoToHHMM(iso: string): string {
   try {
     const d = new Date(iso)
-    return `${d.toLocaleDateString('es-ES')} ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`
-  } catch { return iso }
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  } catch { return '' }
+}
+
+function combineDateTimeISO(isoDate: string, timeHHMM: string): string {
+  return new Date(`${isoDate}T${timeHHMM}:00`).toISOString()
 }
 
 export function SessionEditModal({ session, station, onSave, onClose }: Props) {
   const [dateInput, setDateInput] = useState(formatDateEU(session.date))
-  const [startPercent, setStartPercent] = useState(session.startPercent)
-  const [endPercent, setEndPercent] = useState(session.endPercent)
-  const [pricePerKWh, setPricePerKWh] = useState(session.pricePerKWh)
+  const [startPercent, setStartPercent] = useState(String(session.startPercent))
+  const [endPercent, setEndPercent] = useState(String(session.endPercent))
+  const [pricePerKWh, setPricePerKWh] = useState(String(session.pricePerKWh))
   const [mileageKm, setMileageKm] = useState<string>(session.mileageKm != null ? String(session.mileageKm) : '')
+  const [startTimeInput, setStartTimeInput] = useState(session.startTime ? isoToHHMM(session.startTime) : '')
+  const [endTimeInput, setEndTimeInput] = useState(session.endTime ? isoToHHMM(session.endTime) : '')
   const [notes, setNotes] = useState(session.notes || '')
 
   const handleSave = () => {
@@ -30,18 +36,27 @@ export function SessionEditModal({ session, station, onSave, onClose }: Props) {
       alert('Fecha no valida. Usa el formato DD/MM/AAAA')
       return
     }
-    if (endPercent < startPercent) {
+    const startPct = startPercent === '' ? 0 : Number(startPercent)
+    const endPct = endPercent === '' ? 0 : Number(endPercent)
+    if (endPct < startPct) {
       alert('El nivel final debe ser mayor o igual al nivel inicial')
       return
     }
-    onSave(session.id, {
+    const updates: Partial<Omit<ChargeSession, 'id'>> = {
       date: isoDate,
-      startPercent,
-      endPercent,
-      pricePerKWh,
+      startPercent: startPct,
+      endPercent: endPct,
+      pricePerKWh: pricePerKWh === '' ? 0 : Number(pricePerKWh),
       mileageKm: mileageKm ? parseInt(mileageKm, 10) : undefined,
       notes: notes.trim() || undefined
-    })
+    }
+    if (startTimeInput) {
+      updates.startTime = combineDateTimeISO(isoDate, startTimeInput)
+    }
+    if (endTimeInput) {
+      updates.endTime = combineDateTimeISO(isoDate, endTimeInput)
+    }
+    onSave(session.id, updates)
     onClose()
   }
 
@@ -51,13 +66,6 @@ export function SessionEditModal({ session, station, onSave, onClose }: Props) {
         <h3>Editar sesion de carga</h3>
         <p className="modal-subtitle">{station?.name || 'Estacion desconocida'}</p>
 
-        {session.startTime && (
-          <div className="session-timestamps">
-            <span>Inicio: {formatDateTime(session.startTime)}</span>
-            {session.endTime && <span> | Fin: {formatDateTime(session.endTime)}</span>}
-          </div>
-        )}
-
         <div className="form-row">
           <label>
             Fecha (DD/MM/AAAA)
@@ -66,18 +74,28 @@ export function SessionEditModal({ session, station, onSave, onClose }: Props) {
         </div>
         <div className="form-row">
           <label>
+            Hora inicio (HH:MM)
+            <input type="time" value={startTimeInput} onChange={e => setStartTimeInput(e.target.value)} />
+          </label>
+          <label>
+            Hora fin (HH:MM)
+            <input type="time" value={endTimeInput} onChange={e => setEndTimeInput(e.target.value)} />
+          </label>
+        </div>
+        <div className="form-row">
+          <label>
             Inicio (%)
-            <input type="number" value={startPercent} onChange={e => setStartPercent(Number(e.target.value))} min={0} max={100} />
+            <input type="number" value={startPercent} onChange={e => setStartPercent(e.target.value)} min={0} max={100} placeholder="0" />
           </label>
           <label>
             Final (%)
-            <input type="number" value={endPercent} onChange={e => setEndPercent(Number(e.target.value))} min={0} max={100} />
+            <input type="number" value={endPercent} onChange={e => setEndPercent(e.target.value)} min={0} max={100} placeholder="0" />
           </label>
         </div>
         <div className="form-row">
           <label>
             Precio por kWh (EUR)
-            <input type="number" value={pricePerKWh} onChange={e => setPricePerKWh(Number(e.target.value))} min={0} step={0.0001} />
+            <input type="number" value={pricePerKWh} onChange={e => setPricePerKWh(e.target.value)} min={0} step={0.0001} placeholder="0" />
           </label>
           <label>
             Kilometraje (km)

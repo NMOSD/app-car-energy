@@ -28,11 +28,11 @@ export function ChargingFlow({
   onStartCharge, onCompleteCharge, onCancelCharge, onSuccess
 }: Props) {
   const [stationId, setStationId] = useState('')
-  const [startPercent, setStartPercent] = useState(0)
+  const [startPercent, setStartPercent] = useState('')
   const [dateInput, setDateInput] = useState(formatDateEU(todayDate()))
   const [startTimeInput, setStartTimeInput] = useState(currentTimeHHMM())
-  const [mileageKm, setMileageKm] = useState<string>('')
-  const [endPercent, setEndPercent] = useState(0)
+  const [mileageKm, setMileageKm] = useState('')
+  const [endPercent, setEndPercent] = useState('')
   const [endTimeInput, setEndTimeInput] = useState(currentTimeHHMM())
   const [pricePerKWh, setPricePerKWh] = useState(0)
   const [fetchingPrice, setFetchingPrice] = useState(false)
@@ -95,7 +95,7 @@ export function ChargingFlow({
       const result = await extractDashboardData(file)
       const parts: string[] = []
       if (result.batteryPercent !== null) {
-        setStartPercent(result.batteryPercent)
+        setStartPercent(String(result.batteryPercent))
         parts.push(`Bateria: ${result.batteryPercent}%`)
       }
       if (result.mileageKm !== null) {
@@ -115,14 +115,15 @@ export function ChargingFlow({
     if (!stationId) return
     const isoDate = parseEUDate(dateInput)
     if (!isoDate) return
-    if (startPercent < 0 || startPercent > 100) return
+    const startPct = startPercent === '' ? 0 : Number(startPercent)
+    if (startPct < 0 || startPct > 100) return
     const station = stations.find(s => s.id === stationId)
     const km = mileageKm ? parseInt(mileageKm, 10) : undefined
     const startTimeISO = combineDateTimeISO(isoDate, startTimeInput)
-    onStartCharge(stationId, startPercent, isoDate, km, photoTimestamp, startTimeISO)
+    onStartCharge(stationId, startPct, isoDate, km, photoTimestamp, startTimeISO)
     onSuccess(`Carga iniciada: ${station?.name} el ${dateInput}`)
     setStationId('')
-    setStartPercent(0)
+    setStartPercent('')
     setDateInput(formatDateEU(todayDate()))
     setStartTimeInput(currentTimeHHMM())
     setMileageKm('')
@@ -132,18 +133,19 @@ export function ChargingFlow({
 
   const handleComplete = () => {
     if (!inProgressSession) return
-    if (endPercent < 0 || endPercent > 100) return
-    if (endPercent < inProgressSession.startPercent) {
+    const endPct = endPercent === '' ? 0 : Number(endPercent)
+    if (endPct < 0 || endPct > 100) return
+    if (endPct < inProgressSession.startPercent) {
       alert('El nivel final debe ser mayor o igual al nivel inicial')
       return
     }
-    const energyKWh = calculateKWh(inProgressSession.startPercent, endPercent, batteryCapacityKWh)
+    const energyKWh = calculateKWh(inProgressSession.startPercent, endPct, batteryCapacityKWh)
     const cost = energyKWh * pricePerKWh
     const isoDate = inProgressSession.date
     const endTimeISO = combineDateTimeISO(isoDate, endTimeInput)
-    onCompleteCharge(endPercent, pricePerKWh, endTimeISO)
+    onCompleteCharge(endPct, pricePerKWh, endTimeISO)
     onSuccess(`Carga registrada: ${energyKWh.toFixed(2)} kWh por ${formatCurrency(cost)}`)
-    setEndPercent(0)
+    setEndPercent('')
     setEndTimeInput(currentTimeHHMM())
     setPricePerKWh(0)
     setPriceError('')
@@ -152,7 +154,7 @@ export function ChargingFlow({
 
   const handleCancel = () => {
     onCancelCharge()
-    setEndPercent(0)
+    setEndPercent('')
     setEndTimeInput(currentTimeHHMM())
     setPricePerKWh(0)
     setPriceError('')
@@ -217,7 +219,7 @@ export function ChargingFlow({
           </label>
           <label>
             Nivel final (%)
-            <input type="number" value={endPercent} onChange={e => setEndPercent(Number(e.target.value))} min={0} max={100} />
+            <input type="number" value={endPercent} onChange={e => setEndPercent(e.target.value)} min={0} max={100} placeholder="0" />
           </label>
         </div>
         {ipStation?.pricingMethod === 'variable' && isToday && (
@@ -297,7 +299,7 @@ export function ChargingFlow({
       <div className="form-row">
         <label>
           Nivel inicial (%)
-          <input type="number" value={startPercent} onChange={e => setStartPercent(Number(e.target.value))} min={0} max={100} />
+          <input type="number" value={startPercent} onChange={e => setStartPercent(e.target.value)} min={0} max={100} placeholder="0" />
         </label>
       </div>
 
