@@ -627,6 +627,50 @@ button:disabled {
   margin: 0 0 12px;
 }
 
+/* Hourly cost breakdown */
+.hourly-cost-section {
+  margin-bottom: 12px;
+}
+
+.hourly-breakdown {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.hourly-breakdown h4 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  color: #166534;
+}
+
+.hourly-breakdown .estimate-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.82rem;
+  padding: 3px 0;
+}
+
+.hourly-total {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #86efac;
+  margin-top: 8px;
+  padding-top: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.hourly-avg {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin-top: 4px;
+}
+
 /* Vehicle photo */
 .vehicle-photo {
   margin-top: 20px;

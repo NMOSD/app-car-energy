@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { ChargingStation, InProgressSession } from '../types'
 import { formatDateEU, parseEUDate, todayDate, formatCurrency, calculateKWh, estimateChargeMinutes, formatDuration } from '../utils'
-import { fetchCurrentPrice } from '../services/electricityPrice'
+import { fetchTodayPrices, calculateHourlyCost, HourlyCostResult } from '../services/electricityPrice'
 import { ChargingCounter } from './ChargingCounter'
 
 function currentTimeHHMM(): string {
@@ -37,6 +37,7 @@ export function ChargingFlow({
   const [pricePerKWh, setPricePerKWh] = useState(0)
   const [fetchingPrice, setFetchingPrice] = useState(false)
   const [priceError, setPriceError] = useState('')
+  const [hourlyCost, setHourlyCost] = useState<HourlyCostResult | null>(null)
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrResult, setOcrResult] = useState<string>('')
   const [photoTimestamp, setPhotoTimestamp] = useState<string | undefined>()
@@ -52,26 +53,31 @@ export function ChargingFlow({
     }
   }, [selectedStation])
 
+  const isToday = inProgressSession?.date === todayDate()
+
   useEffect(() => {
-    if (inProgressSession && ipStation?.pricingMethod === 'variable') {
-      handleFetchPrice()
-    }
     if (inProgressSession) {
       setEndTimeInput(currentTimeHHMM())
+      setHourlyCost(null)
       if (ipStation?.pricingMethod === 'fixed') {
         setPricePerKWh(ipStation.unitPricePerKWh)
       }
     }
   }, [inProgressSession, ipStation])
 
-  const handleFetchPrice = async () => {
+  const handleCalcHourlyCost = async () => {
+    if (!inProgressSession || !ipStation) return
     setFetchingPrice(true)
     setPriceError('')
+    setHourlyCost(null)
     try {
-      const price = await fetchCurrentPrice()
-      setPricePerKWh(price)
+      const prices = await fetchTodayPrices()
+      const endTimeISO = combineDateTimeISO(inProgressSession.date, endTimeInput)
+      const result = calculateHourlyCost(inProgressSession.startTime, endTimeISO, ipStation.chargingSpeedKWh, prices)
+      setHourlyCost(result)
+      setPricePerKWh(result.avgPricePerKWh)
     } catch {
-      setPriceError('No se pudo obtener el precio. Introduce el precio manualmente.')
+      setPriceError('No se pudieron obtener los precios. Introduce el precio manualmente.')
     } finally {
       setFetchingPrice(false)
     }
@@ -141,6 +147,7 @@ export function ChargingFlow({
     setEndTimeInput(currentTimeHHMM())
     setPricePerKWh(0)
     setPriceError('')
+    setHourlyCost(null)
   }
 
   const handleCancel = () => {
@@ -149,6 +156,7 @@ export function ChargingFlow({
     setEndTimeInput(currentTimeHHMM())
     setPricePerKWh(0)
     setPriceError('')
+    setHourlyCost(null)
   }
 
   if (inProgressSession) {
@@ -212,18 +220,39 @@ export function ChargingFlow({
             <input type="number" value={endPercent} onChange={e => setEndPercent(Number(e.target.value))} min={0} max={100} />
           </label>
         </div>
-        {ipStation?.pricingMethod === 'variable' && (
+        {ipStation?.pricingMethod === 'variable' && isToday && (
+          <div className="hourly-cost-section">
+            <button className="btn-small" onClick={handleCalcHourlyCost} disabled={fetchingPrice} style={{ marginBottom: 10 }}>
+              {fetchingPrice ? 'Calculando...' : 'Calcular coste por franjas PVPC'}
+            </button>
+            {priceError && <span className="error-text">{priceError}</span>}
+            {hourlyCost && (
+              <div className="hourly-breakdown">
+                <h4>Desglose por franjas horarias</h4>
+                {hourlyCost.slots.map((slot, i) => (
+                  <div key={i} className="estimate-row">
+                    <span>{slot.hourLabel} ({slot.minutes} min)</span>
+                    <span>{slot.kWh.toFixed(2)} kWh × {slot.pricePerKWh.toFixed(4)} €</span>
+                    <strong>{slot.cost.toFixed(4)} €</strong>
+                  </div>
+                ))}
+                <div className="hourly-total">
+                  <span>Total: {hourlyCost.totalKWh.toFixed(2)} kWh</span>
+                  <strong>{formatCurrency(hourlyCost.totalCost)}</strong>
+                </div>
+                <div className="hourly-avg">
+                  Precio medio: {hourlyCost.avgPricePerKWh.toFixed(4)} €/kWh
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {ipStation?.pricingMethod === 'variable' && !isToday && (
           <div className="form-row">
             <label>
-              Precio por kWh (EUR)
+              Precio medio por kWh (EUR)
               <input type="number" value={pricePerKWh} onChange={e => setPricePerKWh(Number(e.target.value))} min={0} step={0.0001} />
             </label>
-            <div className="price-fetch">
-              <button className="btn-small" onClick={handleFetchPrice} disabled={fetchingPrice}>
-                {fetchingPrice ? 'Obteniendo...' : 'Obtener precio PVPC'}
-              </button>
-              {priceError && <span className="error-text">{priceError}</span>}
-            </div>
           </div>
         )}
         <div className="form-actions">
