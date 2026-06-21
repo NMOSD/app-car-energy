@@ -5,6 +5,7 @@ import { formatDateEU, parseEUDate } from '../utils'
 interface Props {
   session: ChargeSession
   station: ChargingStation | undefined
+  stations: ChargingStation[]
   onSave: (id: string, updates: Partial<Omit<ChargeSession, 'id'>>) => void
   onClose: () => void
 }
@@ -20,7 +21,8 @@ function combineDateTimeISO(isoDate: string, timeHHMM: string): string {
   return new Date(`${isoDate}T${timeHHMM}:00`).toISOString()
 }
 
-export function SessionEditModal({ session, station, onSave, onClose }: Props) {
+export function SessionEditModal({ session, station, stations, onSave, onClose }: Props) {
+  const [stationId, setStationId] = useState(session.stationId)
   const [dateInput, setDateInput] = useState(formatDateEU(session.date))
   const [startPercent, setStartPercent] = useState(String(session.startPercent))
   const [endPercent, setEndPercent] = useState(String(session.endPercent))
@@ -43,6 +45,7 @@ export function SessionEditModal({ session, station, onSave, onClose }: Props) {
       return
     }
     const updates: Partial<Omit<ChargeSession, 'id'>> = {
+      stationId,
       date: isoDate,
       startPercent: startPct,
       endPercent: endPct,
@@ -64,9 +67,15 @@ export function SessionEditModal({ session, station, onSave, onClose }: Props) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <h3>Editar sesion de carga</h3>
-        <p className="modal-subtitle">{station?.name || 'Estacion desconocida'}</p>
 
         <div className="form-row">
+          <label>
+            Estacion
+            <select value={stationId} onChange={e => setStationId(e.target.value)}>
+              {!station && <option value={session.stationId}>Estacion desconocida</option>}
+              {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </label>
           <label>
             Fecha (DD/MM/AAAA)
             <input type="text" value={dateInput} onChange={e => setDateInput(e.target.value)} />

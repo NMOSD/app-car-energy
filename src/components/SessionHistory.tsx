@@ -90,6 +90,7 @@ export function SessionHistory({ sessions, stations, onUpdate, onDelete }: Props
         <SessionEditModal
           session={editingSession}
           station={editingStation}
+          stations={stations}
           onSave={onUpdate}
           onClose={() => setEditingId(null)}
         />
