@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { ChargingStation, InProgressSession, PeajesConfig } from '../types'
 import { formatDateEU, parseEUDate, todayDate, formatCurrency, calculateKWh, estimateChargeMinutes, formatDuration } from '../utils'
 import { fetchTodayPrices, calculateHourlyCost, applyPeajes, HourlyCostResult } from '../services/electricityPrice'
+import { IVA_RATE } from '../constants'
 import { ChargingCounter } from './ChargingCounter'
 
 function currentTimeHHMM(): string {
@@ -77,7 +78,7 @@ export function ChargingFlow({
       const endTimeISO = combineDateTimeISO(inProgressSession.date, endTimeInput)
       const result = calculateHourlyCost(inProgressSession.startTime, endTimeISO, ipStation.chargingSpeedKWh, prices)
       setHourlyCost(result)
-      setPricePerKWh(result.avgPricePerKWh)
+      setPricePerKWh(result.avgPricePerKWh * (1 + IVA_RATE))
     } catch {
       setPriceError('No se pudieron obtener los precios. Introduce el precio manualmente.')
     } finally {
@@ -146,7 +147,8 @@ export function ChargingFlow({
     const isoDate = inProgressSession.date
     const endTimeISO = combineDateTimeISO(isoDate, endTimeInput)
     onCompleteCharge(endPct, pricePerKWh, endTimeISO)
-    onSuccess(`Carga registrada: ${energyKWh.toFixed(2)} kWh por ${formatCurrency(cost)}`)
+    const isVariable = ipStation?.pricingMethod === 'variable'
+    onSuccess(`Carga registrada: ${energyKWh.toFixed(2)} kWh por ${formatCurrency(cost)}${isVariable ? ' (IVA incl.)' : ''}`)
     setEndPercent('')
     setEndTimeInput(currentTimeHHMM())
     setPricePerKWh(0)
@@ -241,11 +243,19 @@ export function ChargingFlow({
                   </div>
                 ))}
                 <div className="hourly-total">
-                  <span>Total: {hourlyCost.totalKWh.toFixed(2)} kWh</span>
+                  <span>Subtotal: {hourlyCost.totalKWh.toFixed(2)} kWh</span>
                   <strong>{formatCurrency(hourlyCost.totalCost)}</strong>
                 </div>
+                <div className="hourly-total">
+                  <span>IVA ({(IVA_RATE * 100).toFixed(0)}%)</span>
+                  <strong>{formatCurrency(hourlyCost.totalCost * IVA_RATE)}</strong>
+                </div>
+                <div className="hourly-total" style={{ fontSize: '1rem' }}>
+                  <span>Total con IVA</span>
+                  <strong>{formatCurrency(hourlyCost.totalCost * (1 + IVA_RATE))}</strong>
+                </div>
                 <div className="hourly-avg">
-                  Precio medio: {hourlyCost.avgPricePerKWh.toFixed(4)} €/kWh
+                  Precio medio (con IVA): {(hourlyCost.avgPricePerKWh * (1 + IVA_RATE)).toFixed(4)} €/kWh
                 </div>
               </div>
             )}

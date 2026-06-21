@@ -17,6 +17,7 @@ export function StationForm({ station, onSave, onCancel }: Props) {
   const [pricingMethod, setPricingMethod] = useState<PricingMethod>('fixed')
   const [unitPricePerKWh, setUnitPricePerKWh] = useState(0)
   const [chargingSpeedKWh, setChargingSpeedKWh] = useState(DEFAULT_CHARGING_SPEED_KWH)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (station) {
@@ -30,7 +31,8 @@ export function StationForm({ station, onSave, onCancel }: Props) {
   }, [station])
 
   const handleSubmit = () => {
-    if (!name.trim() || !location.trim()) return
+    if (!name.trim() || !location.trim() || submitting) return
+    setSubmitting(true)
     onSave({ name: name.trim(), location: location.trim(), monthlyTax, pricingMethod, unitPricePerKWh, chargingSpeedKWh })
     if (!station) {
       setName('')
@@ -40,6 +42,7 @@ export function StationForm({ station, onSave, onCancel }: Props) {
       setUnitPricePerKWh(0)
       setChargingSpeedKWh(DEFAULT_CHARGING_SPEED_KWH)
     }
+    setTimeout(() => setSubmitting(false), 1000)
   }
 
   return (
@@ -89,7 +92,7 @@ export function StationForm({ station, onSave, onCancel }: Props) {
         ))}
       </div>
       <div className="form-actions">
-        <button onClick={handleSubmit}>{station ? 'Guardar cambios' : 'Anadir estacion'}</button>
+        <button onClick={handleSubmit} disabled={submitting}>{station ? 'Guardar cambios' : 'Anadir estacion'}</button>
         {onCancel && <button className="btn-secondary" onClick={onCancel}>Cancelar</button>}
       </div>
     </div>
