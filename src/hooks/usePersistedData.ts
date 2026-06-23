@@ -148,7 +148,24 @@ export function usePersistedData(vehicleCode: string) {
     }
     const { id: _id, ...rest } = merged
     fsUpdateSession(codeRef.current, id, rest)
-  }, [data.sessions])
+
+    const affectsSpeed = updates.startPercent !== undefined || updates.endPercent !== undefined
+      || updates.startTime !== undefined || updates.endTime !== undefined
+      || updates.batteryCapacityKWh !== undefined || updates.stationId !== undefined
+    if (affectsSpeed && merged.startTime && merged.endTime) {
+      const durationHours = (new Date(merged.endTime).getTime() - new Date(merged.startTime).getTime()) / 3600000
+      if (durationHours > 0.01 && merged.energyKWh > 0) {
+        const measuredSpeed = merged.energyKWh / durationHours
+        if (measuredSpeed > 0.5 && measuredSpeed < 350) {
+          const station = data.stations.find(s => s.id === merged.stationId)
+          if (station) {
+            const newSpeed = Math.round((0.3 * station.chargingSpeedKWh + 0.7 * measuredSpeed) * 10) / 10
+            fsUpdateStation(codeRef.current, station.id, { chargingSpeedKWh: newSpeed })
+          }
+        }
+      }
+    }
+  }, [data.sessions, data.stations])
 
   const deleteSession = useCallback((id: string) => {
     fsDeleteSession(codeRef.current, id)
