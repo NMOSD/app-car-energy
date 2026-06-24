@@ -20,7 +20,7 @@ interface Props {
   batteryCapacityKWh: number
   peajes: PeajesConfig
   onStartCharge: (stationId: string, startPercent: number, date: string, mileageKm?: number, photoTimestamp?: string, startTime?: string) => void
-  onCompleteCharge: (endPercent: number, pricePerKWh: number, endTime?: string) => void
+  onCompleteCharge: (endPercent: number, pricePerKWh: number, endTime?: string, mileageKm?: number) => void
   onCancelCharge: () => void
   onSuccess: (message: string) => void
 }
@@ -35,6 +35,7 @@ export function ChargingFlow({
   const [startTimeInput, setStartTimeInput] = useState(currentTimeHHMM())
   const [mileageKm, setMileageKm] = useState('')
   const [endPercent, setEndPercent] = useState('')
+  const [completionMileageKm, setCompletionMileageKm] = useState('')
   const [endTimeInput, setEndTimeInput] = useState(currentTimeHHMM())
   const [pricePerKWh, setPricePerKWh] = useState(0)
   const [fetchingPrice, setFetchingPrice] = useState(false)
@@ -146,10 +147,12 @@ export function ChargingFlow({
     const cost = energyKWh * pricePerKWh
     const isoDate = inProgressSession.date
     const endTimeISO = combineDateTimeISO(isoDate, endTimeInput)
-    onCompleteCharge(endPct, pricePerKWh, endTimeISO)
+    const km = completionMileageKm ? parseInt(completionMileageKm, 10) : undefined
+    onCompleteCharge(endPct, pricePerKWh, endTimeISO, km)
     const isVariable = ipStation?.pricingMethod === 'variable'
     onSuccess(`Carga registrada: ${energyKWh.toFixed(2)} kWh por ${formatCurrency(cost)}${isVariable ? ' (IVA incl.)' : ''}`)
     setEndPercent('')
+    setCompletionMileageKm('')
     setEndTimeInput(currentTimeHHMM())
     setPricePerKWh(0)
     setPriceError('')
@@ -226,6 +229,14 @@ export function ChargingFlow({
             <input type="number" value={endPercent} onChange={e => setEndPercent(e.target.value)} min={0} max={100} placeholder="0" />
           </label>
         </div>
+        {!inProgressSession.mileageKm && (
+          <div className="form-row">
+            <label>
+              Kilometraje (km)
+              <input type="number" value={completionMileageKm} onChange={e => setCompletionMileageKm(e.target.value)} min={0} placeholder="Opcional" />
+            </label>
+          </div>
+        )}
         {ipStation?.pricingMethod === 'variable' && isToday && (
           <div className="hourly-cost-section">
             <button className="btn-small" onClick={handleCalcHourlyCost} disabled={fetchingPrice} style={{ marginBottom: 10 }}>

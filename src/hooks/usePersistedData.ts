@@ -93,7 +93,7 @@ export function usePersistedData(vehicleCode: string) {
     return session
   }, [])
 
-  const completeCharge = useCallback((endPercent: number, pricePerKWh: number, manualEndTime?: string) => {
+  const completeCharge = useCallback((endPercent: number, pricePerKWh: number, manualEndTime?: string, completionMileageKm?: number) => {
     const ip = data.inProgressSession
     if (!ip) return null
     const capacity = data.settings.batteryCapacityKWh
@@ -110,7 +110,7 @@ export function usePersistedData(vehicleCode: string) {
       pricePerKWh,
       energyKWh,
       cost,
-      mileageKm: ip.mileageKm,
+      mileageKm: ip.mileageKm ?? completionMileageKm,
       startTime: ip.startTime,
       endTime,
       photoTimestamp: ip.photoTimestamp
